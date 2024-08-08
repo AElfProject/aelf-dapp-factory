@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IPortkeyProvider } from "@portkey/provider-types";
-import { toast } from "react-toastify";
 
 import "./home.scss";
 import { NFT_IMAGES } from "@/lib/constant";
