@@ -92,26 +92,6 @@
       width: 100%; /* Ensure the container takes up the full width */
       gap: 10px; /* This adds space between your buttons */
       margin-top: 20px;
-
-      /* Styles for buttons */
-
-      .submit-btn {
-        background-color: var(--app-purple);
-        color: white;
-      }
-
-      .return-btn {
-        background-color: #6c757d9a;
-        color: white;
-      }
-
-      .submit-btn:hover {
-        background-color: #0056b3;
-      }
-
-      .return-btn:hover {
-        background-color: #5a6268;
-      }
     }
   }
 }

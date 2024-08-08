@@ -59,11 +59,8 @@ const HomePage = ({
           </Button>
           <Button
             className="header-button"
-            onClick={() =>
-              currentWalletAddress
-                ? navigate("/create-nft")
-                : toast.warning("Please Connect Wallet First")
-            }
+            disabled={!currentWalletAddress}
+            onClick={() => navigate("/create-nft")}
           >
             Create NFT Collection
           </Button>

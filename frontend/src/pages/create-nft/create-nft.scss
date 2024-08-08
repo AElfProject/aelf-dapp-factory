@@ -72,29 +72,5 @@
     justify-content: center;
     width: 100%;
     gap: 10px;
-
-    /* Styles for buttons */
-
-    .submit-btn {
-      border-color: var(--app-purple) !important;
-      background-color: var(--app-purple) !important;
-    }
-
-    .return-btn {
-      background-color: #6c757d9a;
-      color: white;
-    }
-
-    .return-btn:hover {
-      background-color: #5a6268;
-    }
-
-    .submit-btn,
-    .return-btn {
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    }
   }
 }

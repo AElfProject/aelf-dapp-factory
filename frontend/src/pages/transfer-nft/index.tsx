@@ -22,7 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 const formSchema = z.object({
   address: z.string(),
-  amount: z.number(),
+  amount: z.string(),
   memo: z.string(),
 });
 
@@ -51,7 +51,7 @@ const TransferNftPage = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       address: "",
-      amount: 0,
+      amount: "",
       memo: "",
     },
   });
@@ -59,7 +59,7 @@ const TransferNftPage = ({
   // Transfer NFT to Other Wallet
   const transferNftToOtherAccount = async (values: {
     address: string;
-    amount: number;
+    amount: string;
     memo: string;
   }) => {
     if (Number(values.amount) > Number(nftBalance)) {

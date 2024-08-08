@@ -48,10 +48,13 @@ button {
   cursor: pointer;
   transition: all 0.25s;
   border-radius: 7px;
-}
 
-button:active {
-  opacity: 0.8;
+  &:hover {
+    opacity: 0.9;
+  }
+  &:active {
+    background-color: #0077ff;
+  }
 }
 
 button.outline {
@@ -75,4 +78,28 @@ button.outline:hover {
 .app-layout{
   width: 100vw;
   padding-top: 70px;
+}
+
+.submit-btn {
+  background-color: var(--app-purple);
+  color: white;
+}
+
+.return-btn {
+  background-color: rgba(108, 117, 125, 0.13);
+  color: black;
+  &:hover {
+    background-color:rgba(108, 117, 125, 0.1);
+  }
+  &:active{
+    background-color:rgba(108, 117, 125, 0.25);
+  }
+}
+
+.submit-btn,
+.return-btn {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
