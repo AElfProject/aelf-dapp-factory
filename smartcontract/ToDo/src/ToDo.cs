@@ -121,5 +121,10 @@ namespace AElf.Contracts.ToDo
 
             return task;
         }
+
+        public override BoolValue GetInitialStatus(Empty input)
+        {
+            return new BoolValue { Value = State.Initialized.Value };
+        }
     }
 }

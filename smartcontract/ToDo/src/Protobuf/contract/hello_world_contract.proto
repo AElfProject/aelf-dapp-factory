@@ -31,6 +31,11 @@ service ToDo {
   rpc GetTask (google.protobuf.StringValue) returns (Task) {
     option (aelf.is_view) = true;
   }
+
+  rpc GetInitialStatus (google.protobuf.Empty) returns (google.protobuf.BoolValue) {
+    option (aelf.is_view) = true;
+  }
+  
 }
 
 // A message to represent a task
