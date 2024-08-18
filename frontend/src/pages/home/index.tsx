@@ -35,10 +35,15 @@ interface ITodoObject {
   updatedAt: string;
 }
 
-type Option = {
+interface Option{
   value: string;
   label: string;
 };
+
+interface PageProps {
+  provider: IPortkeyProvider | null;
+  currentWalletAddress?: string;
+}
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -52,13 +57,7 @@ const formSchema = z.object({
     .refine((val) => val !== null, "Category is required"),
 });
 
-const HomePage = ({
-  provider,
-  currentWalletAddress,
-}: {
-  provider: IPortkeyProvider | null;
-  currentWalletAddress?: string;
-}) => {
+const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
   const smartContract = useTodoSmartContract(provider);
 
   const [todoData, setTodoData] = useState<ITodoObject[] | []>([]);
@@ -327,7 +326,7 @@ const HomePage = ({
     const categoryObj = {
       label: data.category.charAt(0).toUpperCase() + data.category.slice(1),
       value: data.category,
-    }
+    };
     form.setValue("selectedCategory", categoryObj);
     setSelectedCategory(categoryObj);
     setIsModalOpen(true);
