@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { IPortkeyProvider } from "@portkey/provider-types";
+import { ToastContainer } from 'react-toastify';
 
 import Header from "./components/layout/header";
 import HomePage from "./pages/home";
 import "./app.scss";
-import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
