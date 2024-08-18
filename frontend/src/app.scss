@@ -49,6 +49,11 @@ button {
   cursor: pointer;
   transition: all 0.25s;
   border-radius: 7px;
+
+  &:disabled{
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 button:active {

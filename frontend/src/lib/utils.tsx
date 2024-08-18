@@ -1,13 +1,12 @@
 import { type ClassValue, clsx } from "clsx";
 import { toast } from "react-toastify";
 import { twMerge } from "tailwind-merge";
-import moment from 'moment';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const removeNotification = (id: number | string,time?:number) => {
+export const removeNotification = (id: number | string, time?: number) => {
   setTimeout(() => toast.done(id), time || 3000);
 };
 
@@ -17,22 +16,19 @@ export const CustomToast = ({ title, message }: any) => (
     <p>{message}</p>
   </div>
 );
-export const calculateTimeRemaining = (createdAt:string) => {
-  const startDateTime = moment(createdAt);
-  const now = moment();
+export const calculateTimeRemaining = (createdAt: string) => {
+  const nowTime = Math.floor(new Date().getTime() / 1000);
+  const difference = nowTime - Number(createdAt);
 
-  const duration = moment.duration(now.diff(startDateTime));
+  const hours = Math.floor(difference / 3600);
+  const minutes = Math.floor((difference % 3600) / 60);
+  const seconds = difference % 60;
 
-  const days = Number(duration.days());
-  const hours = Number(duration.hours());
-  const minutes = Number(duration.minutes());
-  const seconds = Number(duration.seconds());
-
-  return days > 0
-    ? `${days} days ago`
-    : hours > 0
-    ? `${hours} hours ago`
-    : minutes > 0
-    ? `${minutes} minute ago`
-    : `${seconds} second ago`;
+  if (hours > 0) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  } else {
+    return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+  }
 };

@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IPortkeyProvider } from "@portkey/provider-types";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Select from "react-select";
+import { Id, toast } from "react-toastify";
 
 import "./home.scss";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_OPTIONS, TODO_DATA } from "@/lib/constant";
+import { CATEGORY_OPTIONS, FILTER_TYPE, TASK_STATUS } from "@/lib/constant";
 import Modal from "@/components/modal";
 import {
   Form,
@@ -18,16 +19,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DateIcons, PlusIcon } from "@/components/ui/icons";
-import { calculateTimeRemaining } from "@/lib/utils";
+import { PlusIcon } from "@/components/ui/icons";
+import { removeNotification } from "@/lib/utils";
 import useTodoSmartContract from "@/hooks/useTodoSmartContract";
+import PageFilter from "@/components/page-filter";
+import TodoCard from "@/components/todo-card";
 
-type todoObject = {
+interface ITodoObject {
   name: string;
   description: string;
-  date: string;
-  tag: string;
-};
+  category: string;
+  createdAt: string;
+  status: string;
+  taskId: string;
+  updatedAt: string;
+}
 
 type Option = {
   value: string;
@@ -35,8 +41,8 @@ type Option = {
 };
 
 const formSchema = z.object({
-  name: z.string(),
-  description: z.string(),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
 });
 
 const HomePage = ({
@@ -46,24 +52,100 @@ const HomePage = ({
   provider: IPortkeyProvider | null;
   currentWalletAddress?: string;
 }) => {
-  const [todoData, setTodoData] = useState<todoObject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Option | null>();
-  const [selectedFilter, setSelectedFilter] = useState("all");
   const smartContract = useTodoSmartContract(provider);
+
+  const [todoData, setTodoData] = useState<ITodoObject[] | []>([]);
+  const [updateId, setUpdateId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Option | null>();
+  const [selectedFilter, setSelectedFilter] = useState<string>(FILTER_TYPE.all);
+
+  const [isContractInitialized, setIsContractInitialized] =
+    useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  const pendingTask = useMemo(() => {
+    if (todoData.length === 0) {
+      return todoData;
+    }
+    return todoData.filter(
+      (data: ITodoObject) => data.status.toLowerCase() === TASK_STATUS.pending
+    );
+  }, [todoData, selectedFilter, updateId]);
+
+  const completedTask = useMemo(() => {
+    if (todoData.length === 0) {
+      return todoData;
+    }
+    return todoData.filter(
+      (data: ITodoObject) => data.status.toLowerCase() === TASK_STATUS.completed
+    );
+  }, [todoData, selectedFilter, updateId]);
+
+  const filteredTask = useMemo(() => {
+    return selectedFilter === TASK_STATUS.pending
+      ? pendingTask
+      : selectedFilter === TASK_STATUS.completed
+      ? completedTask
+      : todoData;
+  }, [selectedFilter, completedTask, pendingTask]);
+
+  const handleCloseModal = () => {
+    form.reset();
+    setIsModalOpen(false);
+    setUpdateId(null);
+    setSelectedCategory(null);
+  };
 
   // get Todo Data from User's wallet using contract
   const getTodoData = async () => {
     try {
       const result = await smartContract?.callViewMethod("ListTasks", "");
-      console.log("result", result);
-      setTodoData(result?.data || []);
-      setLoading(false);
+      console.log("result", result?.data.tasks);
+      setTodoData(result?.data.tasks || []);
     } catch (error) {
       console.log("error======", error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const initializeContract = async () => {
+    let initializeLoadingId;
+    try {
+      initializeLoadingId = toast.loading("Initializing a Contract..");
+      await smartContract?.callSendMethod(
+        "Initialize",
+        currentWalletAddress as string,
+        {}
+      );
+      toast.update(initializeLoadingId, {
+        render: "Contract Successfully Initialized",
+        type: "success",
+        isLoading: false,
+      });
+    } catch (error: any) {
+      toast.update(initializeLoadingId as Id, {
+        render: error.message,
+        type: "error",
+        isLoading: false,
+      });
+    } finally {
+      removeNotification(initializeLoadingId as Id);
+    }
+  };
+
+  const checkIsContractInitialized = async () => {
+    const result = await smartContract?.callViewMethod("GetInitialStatus", "");
+    setIsContractInitialized(result?.data.value);
+  };
+
+  // Check whether contract initialized or not
+  useEffect(() => {
+    checkIsContractInitialized();
+  }, []);
 
   // Use Effect to Fetch NFTs
   useEffect(() => {
@@ -80,31 +162,164 @@ const HomePage = ({
     },
   });
 
-  const createNewTask = async (values:{name:string,description:string}) => {
+  const createNewTask = async (values: {
+    name: string;
+    description: string;
+  }) => {
+    let createLoadingId;
     try {
-      await smartContract?.callSendMethod("Initialize", currentWalletAddress as string, {});
-      alert("Initialize Successful")
+      createLoadingId = toast.loading("Creating a New Task..");
+      setFormLoading(true);
       const sendData = {
-        Name: values.name,
-        Description: values.description,
-        Category: selectedCategory?.value,
+        name: values.name,
+        description: values.description,
+        category: selectedCategory?.value,
+        status: TASK_STATUS.pending,
       };
-      console.log("create task with this data",sendData)
-      const result = await smartContract?.callSendMethod(
+      console.log("create task with this data", sendData);
+      await smartContract?.callSendMethod(
         "CreateTask",
         currentWalletAddress as string,
         sendData
       );
-      console.log("result", result);
-      setTodoData(TODO_DATA);
-      setLoading(false);
-    } catch (error) {
+      toast.update(createLoadingId, {
+        render: "New Task Successfully Created",
+        type: "success",
+        isLoading: false,
+      });
+      setIsModalOpen(false);
+      getTodoData();
+    } catch (error: any) {
       console.log("error======", error);
+      toast.update(createLoadingId as Id, {
+        render: error.message,
+        type: "error",
+        isLoading: false,
+      });
+    } finally {
+      setFormLoading(false);
+      removeNotification(createLoadingId as Id);
     }
   };
 
-  const onSubmit = async(values:{name:string,description:string}) => {
-    await createNewTask(values);
+  const updateTask = async (values: { name: string; description: string }) => {
+    let updateLoadingId;
+    try {
+      updateLoadingId = toast.loading("Updating a Task..");
+      setFormLoading(true);
+      const sendData = {
+        taskId: updateId,
+        name: values.name,
+        description: values.description,
+        category: selectedCategory?.value,
+        status: TASK_STATUS.pending,
+      };
+      console.log("create task with this data", sendData);
+      await smartContract?.callSendMethod(
+        "UpdateTask",
+        currentWalletAddress as string,
+        sendData
+      );
+      toast.update(updateLoadingId, {
+        render: "Task Successfully Updated",
+        type: "success",
+        isLoading: false,
+      });
+      setIsModalOpen(false);
+      getTodoData();
+    } catch (error: any) {
+      console.log("error======", error);
+      toast.update(updateLoadingId as Id, {
+        render: error.message,
+        type: "error",
+        isLoading: false,
+      });
+    } finally {
+      setFormLoading(false);
+      removeNotification(updateLoadingId as Id);
+    }
+  };
+
+  const deleteTask = async (deleteId: string) => {
+    let deleteLoadingId;
+    try {
+      deleteLoadingId = toast.loading("Removing a Task..");
+      setDeletingId(deleteId);
+      await smartContract?.callSendMethod(
+        "DeleteTask",
+        currentWalletAddress as string,
+        { value: deleteId }
+      );
+      toast.update(deleteLoadingId, {
+        render: "Task Successfully Removed",
+        type: "success",
+        isLoading: false,
+      });
+      setIsModalOpen(false);
+      await getTodoData();
+    } catch (error: any) {
+      console.log("error======", error);
+      toast.update(deleteLoadingId as Id, {
+        render: error.message,
+        type: "error",
+        isLoading: false,
+      });
+    } finally {
+      setDeletingId(null);
+      removeNotification(deleteLoadingId as Id);
+    }
+  };
+
+  const completeTask = async (data: ITodoObject) => {
+    let completeLoadingId;
+    try {
+      completeLoadingId = toast.loading("Moving to Completed Task..");
+      setUpdateId(data.taskId);
+      await smartContract?.callSendMethod(
+        "UpdateTask",
+        currentWalletAddress as string,
+        { ...data, status: TASK_STATUS.completed }
+      );
+      toast.update(completeLoadingId, {
+        render: "Task Moved to Completed",
+        type: "success",
+        isLoading: false,
+      });
+      setIsModalOpen(false);
+      await getTodoData();
+    } catch (error: any) {
+      console.log("error======", error);
+      toast.update(completeLoadingId as Id, {
+        render: error.message,
+        type: "error",
+        isLoading: false,
+      });
+    } finally {
+      setUpdateId(null);
+      removeNotification(completeLoadingId as Id);
+    }
+  };
+
+  const onSubmit = async (values: { name: string; description: string }) => {
+    if (isContractInitialized !== true) {
+      await initializeContract();
+    }
+    if (!!updateId) {
+      await updateTask(values);
+    } else {
+      await createNewTask(values);
+    }
+  };
+
+  const onEditHandle = (data: ITodoObject) => {
+    setUpdateId(data.taskId);
+    form.setValue("name", data.name);
+    form.setValue("description", data.description);
+    setSelectedCategory({
+      label: data.category.charAt(0).toUpperCase() + data.category.slice(1),
+      value: data.category,
+    });
+    setIsModalOpen(true);
   };
 
   return (
@@ -122,31 +337,17 @@ const HomePage = ({
             </Button>
           </div>
         </div>
-        <div className="filter-wrapper">
-          <span
-            className={selectedFilter === "all" ? "active" : ""}
-            onClick={() => setSelectedFilter("all")}
-          >
-            All
-          </span>
-          <span
-            className={selectedFilter === "in-progress" ? "active" : ""}
-            onClick={() => setSelectedFilter("in-progress")}
-          >
-            In Progress
-          </span>
-          <span
-            className={selectedFilter === "completed" ? "active" : ""}
-            onClick={() => setSelectedFilter("completed")}
-          >
-            Completed
-          </span>
-        </div>
-
+        <PageFilter
+          selectedFilter={selectedFilter}
+          setSelectedFilter={setSelectedFilter}
+          allLength={todoData.length}
+          pendingLength={pendingTask.length}
+          completedLength={completedTask.length}
+        />
         <Modal
           isVisible={isModalOpen}
-          title={"Add New Todo Item"}
-          onClose={() => setIsModalOpen(!isModalOpen)}
+          title={(updateId ? "Update" : "Create New") + " Task"}
+          onClose={handleCloseModal}
         >
           <Form {...form}>
             <form
@@ -163,7 +364,7 @@ const HomePage = ({
                       <FormControl>
                         <Input placeholder="Enter Token Name" {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="error-message" />
                     </FormItem>
                   )}
                 />
@@ -178,7 +379,7 @@ const HomePage = ({
                       <FormControl>
                         <Input placeholder="Enter Symbol" {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="error-message" />
                     </FormItem>
                   )}
                 />
@@ -186,7 +387,6 @@ const HomePage = ({
               <div className="select-container">
                 <label>Select Types</label>
                 <Select
-                  //@ts-ignore
                   value={selectedCategory}
                   options={CATEGORY_OPTIONS}
                   //@ts-ignore
@@ -195,8 +395,12 @@ const HomePage = ({
                 />
               </div>
               <div className="button-container">
-                <Button type="submit" className="submit-btn">
-                  Create New Item
+                <Button
+                  type="submit"
+                  className="submit-btn"
+                  disabled={formLoading}
+                >
+                  {!!updateId ? "Update" : "Create New"} Task
                 </Button>
               </div>
             </form>
@@ -205,28 +409,20 @@ const HomePage = ({
 
         {currentWalletAddress ? (
           <div className="todo-collection">
-            {todoData.length > 0 ? (
-              todoData.slice(0, 5).map((data: todoObject, index) => (
-                <div className={"todo-card"} key={index}>
-                  <div className="info">
-                    <p className="title">{data.name}</p>
-                    <p className="desc">{data.description}</p>
-                    <div className="date">
-                      <DateIcons />
-                      <p>{calculateTimeRemaining(data.date)}</p>
-                    </div>
-                  </div>
-                  <div className="right-container">
-                    <div className="tags-wrapper">
-                      <span>{data.tag}</span>
-                    </div>
-                    <div className="action-container">
-                      <Button>Edit</Button>
-                      <Button className="complete">Complete</Button>
-                    </div>
-                  </div>
-                </div>
-              ))
+            {filteredTask.length > 0 ? (
+              filteredTask.slice(0, 5).map((data: ITodoObject, index) => {
+                return (
+                  <TodoCard
+                    data={data}
+                    index={index}
+                    onEditTaskHandle={onEditHandle}
+                    onCompleteTaskHandle={completeTask}
+                    onDeleteTaskHandle={deleteTask}
+                    updateId={updateId}
+                    deletingId={deletingId}
+                  />
+                );
+              })
             ) : loading ? (
               <div className="bordered-container">
                 <strong>Loading...</strong>
@@ -234,7 +430,7 @@ const HomePage = ({
             ) : (
               <div className="bordered-container">
                 <strong>
-                  It's Look like you don't have any NFT on your wallet
+                  It's Look like you haven't created any Todo Item yet
                 </strong>
               </div>
             )}

@@ -1,0 +1,116 @@
+.todo-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    width: 100%;
+    background-color: white;
+    border-radius: 20px;
+    border: 1px solid #1371dd2d;
+    box-shadow: 0px 1px 5px 2px #1371dd13;
+    img {
+      height: 300px;
+      width: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    p {
+      &.title {
+        font-size: 20px;
+        font-weight: 600;
+      }
+      &.desc {
+        margin-top: 10px;
+        font-weight: 400;
+        color: var(--secondary-text-color);
+        max-width: 500px;
+        font-size: 14px;
+      }
+    }
+    .date {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 20px;
+      background-color: #1371dd1a;
+      width: fit-content;
+      padding: 5px 10px;
+      border-radius: 7px;
+
+      svg {
+        height: 17px;
+        width: 17px;
+      }
+      p {
+        font-size: 13px;
+        margin-top: 1px;
+      }
+    }
+    .right-container {
+      .tags-wrapper {
+        display: flex;
+        justify-content: end;
+        margin-bottom: 30px;
+
+        span {
+          padding: 5px 15px;
+          background-color: rgba(255, 115, 0, 0.158);
+          color: rgba(255, 115, 0, 1);
+          border-radius: 20px;
+          font-size: 13px;
+        }
+      }
+      .action-container {
+        display: flex;
+        gap: 10px;
+        button {
+          width: 100%;
+          font-size: 15px;
+          padding-inline: 30px;
+          font-weight: 600;
+          background-color: #1371dd1a;
+          color: var(--app-purple);
+          border-radius: 7px;
+          box-shadow: none;
+          transition: all 0.2s ease-in;
+
+          &:hover {
+            background-color: var(--app-purple);
+            color: white;
+            box-shadow: 0px 1px 5px 2px #1371dd28;
+          }
+
+          &.complete {
+            background-color: #28a74628;
+            color: #28a745;
+
+            &:hover,
+            &.active {
+              background-color: #28a745;
+              color: white;
+              box-shadow: 0px 1px 5px 2px rgba(10, 126, 58, 0.1);
+            }
+
+            &.active {
+              cursor: default;
+            }
+          }
+
+          &.error-btn {
+            background-color: #ee494928;
+            color: #ee4949;
+
+            &:hover {
+              background-color: #ee4949;
+              color: white;
+              box-shadow: 0px 1px 5px 2px #ee494920;
+            }
+          }
+        }
+      }
+    }
+  }
