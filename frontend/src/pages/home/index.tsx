@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { IPortkeyProvider } from "@portkey/provider-types";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
 import Select from "react-select";
 import { Id, toast } from "react-toastify";
@@ -43,6 +43,10 @@ type Option = {
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
+  selectedCategory: z.object({
+    value: z.string(),
+    label: z.string(),
+  }).nullable().refine((val) => val !== null, "Category is required"),
 });
 
 const HomePage = ({
@@ -102,7 +106,9 @@ const HomePage = ({
   // get Todo Data from User's wallet using contract
   const getTodoData = async () => {
     try {
-      const result = await smartContract?.callViewMethod("ListTasks", "");
+      const result = await smartContract?.callViewMethod("ListTasks", {
+        value: currentWalletAddress,
+      });
       console.log("result", result?.data.tasks);
       setTodoData(result?.data.tasks || []);
     } catch (error) {
@@ -225,7 +231,6 @@ const HomePage = ({
         type: "success",
         isLoading: false,
       });
-      setIsModalOpen(false);
       getTodoData();
     } catch (error: any) {
       console.log("error======", error);
@@ -236,6 +241,7 @@ const HomePage = ({
       });
     } finally {
       setFormLoading(false);
+      handleCloseModal();
       removeNotification(updateLoadingId as Id);
     }
   };
@@ -385,13 +391,30 @@ const HomePage = ({
                 />
               </div>
               <div className="select-container">
-                <label>Select Types</label>
-                <Select
-                  value={selectedCategory}
-                  options={CATEGORY_OPTIONS}
-                  //@ts-ignore
-                  onChange={(opt: Option) => setSelectedCategory(opt)}
-                  placeholder="Select Category"
+                <FormField
+                  control={form.control}
+                  name="selectedCategory"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Select Types</FormLabel>
+                      <FormControl>
+                        <Controller
+                          name="selectedCategory"
+                          control={form.control}
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              options={CATEGORY_OPTIONS}
+                              //@ts-ignore
+                              onChange={(opt: Option) => field.onChange(opt)}
+                              placeholder="Select Category"
+                            />
+                          )}
+                        />
+                      </FormControl>
+                      <FormMessage className="error-message" />
+                    </FormItem>
+                  )}
                 />
               </div>
               <div className="button-container">

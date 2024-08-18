@@ -17,7 +17,7 @@ const useTodoSmartContract = (provider: IPortkeyProvider | null) => {
 
         //Address of DAO Smart Contract
         //Replace with Address of Deployed Smart Contract
-        const address = "Zs2uuEWdbgMmgqy7K7fuH7qQ8c92HtzcVX6uoYfF6wxHsrVg7";
+        const address = "2TUANmhCGkympiYs2wmpMY39YjZzBuodohnoDbrfBGMK9eMPAZ";
 
         // 2. get the DAO contract
         const todoContract = chain?.getContract(address);
