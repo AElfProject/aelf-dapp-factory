@@ -43,10 +43,13 @@ type Option = {
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  selectedCategory: z.object({
-    value: z.string(),
-    label: z.string(),
-  }).nullable().refine((val) => val !== null, "Category is required"),
+  selectedCategory: z
+    .object({
+      value: z.string(),
+      label: z.string(),
+    })
+    .nullable()
+    .refine((val) => val !== null, "Category is required"),
 });
 
 const HomePage = ({
@@ -109,8 +112,8 @@ const HomePage = ({
       const result = await smartContract?.callViewMethod("ListTasks", {
         value: currentWalletAddress,
       });
-      console.log("result", result?.data.tasks);
-      setTodoData(result?.data.tasks || []);
+      console.log("result", result?.data);
+      setTodoData(result?.data ? result?.data.tasks : []);
     } catch (error) {
       console.log("error======", error);
     } finally {
@@ -145,13 +148,13 @@ const HomePage = ({
 
   const checkIsContractInitialized = async () => {
     const result = await smartContract?.callViewMethod("GetInitialStatus", "");
-    setIsContractInitialized(result?.data.value);
+    setIsContractInitialized(result?.data?.value);
   };
 
   // Check whether contract initialized or not
   useEffect(() => {
-    checkIsContractInitialized();
-  }, []);
+    smartContract && checkIsContractInitialized();
+  }, [smartContract]);
 
   // Use Effect to Fetch NFTs
   useEffect(() => {
@@ -193,7 +196,7 @@ const HomePage = ({
         type: "success",
         isLoading: false,
       });
-      setIsModalOpen(false);
+      handleCloseModal();
       getTodoData();
     } catch (error: any) {
       console.log("error======", error);
@@ -321,10 +324,12 @@ const HomePage = ({
     setUpdateId(data.taskId);
     form.setValue("name", data.name);
     form.setValue("description", data.description);
-    setSelectedCategory({
+    const categoryObj = {
       label: data.category.charAt(0).toUpperCase() + data.category.slice(1),
       value: data.category,
-    });
+    }
+    form.setValue("selectedCategory", categoryObj);
+    setSelectedCategory(categoryObj);
     setIsModalOpen(true);
   };
 
@@ -336,6 +341,7 @@ const HomePage = ({
           <div className="button-wrapper">
             <Button
               className="header-button"
+              disabled={!currentWalletAddress}
               onClick={() => setIsModalOpen(true)}
             >
               <PlusIcon />
@@ -406,7 +412,10 @@ const HomePage = ({
                               value={field.value}
                               options={CATEGORY_OPTIONS}
                               //@ts-ignore
-                              onChange={(opt: Option) => field.onChange(opt)}
+                              onChange={(opt: Option) => {
+                                field.onChange(opt);
+                                setSelectedCategory(opt);
+                              }}
                               placeholder="Select Category"
                             />
                           )}
