@@ -36,6 +36,6 @@ export const calculateTimeRemaining = (updatedAt: string) => {
 
 export const dateFormat = (date: string) => {
   const unixTimestamp = Number(date);
-  const formattedDate = new Date(unixTimestamp * 1000).toString()
+  const formattedDate = new Date(unixTimestamp * 1000).toLocaleString()
   return formattedDate
 }

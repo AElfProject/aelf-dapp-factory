@@ -40,6 +40,7 @@ const TodoCard = ({
       <div className="info">
         <p className="title">{data.name}</p>
         <p className="desc">{data.description}</p>
+        <div className="date-and-time-container">
         <div className="date" data-tooltip="Updated Time">
           <ClockIcon />
           <p>{calculateTimeRemaining(data.updatedAt)}</p>
@@ -47,6 +48,7 @@ const TodoCard = ({
         <div className="date" data-tooltip="Created Date and Time">
           <DateIcons />
           <p>{dateFormat(data.createdAt)}</p>
+        </div>
         </div>
       </div>
       <div className="right-container">
