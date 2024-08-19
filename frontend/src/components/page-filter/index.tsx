@@ -1,13 +1,23 @@
 import { FILTER_TYPE } from "@/lib/constant";
 import "./page-filter.scss";
 
+interface IPageFilter {
+  selectedFilter: string,
+  setSelectedFilter: (type: string) => void,
+  allLength: number,
+  pendingLength: number,
+  completedLength: number,
+  removedLength: number
+}
+
 const PageFilter = ({
   selectedFilter,
   setSelectedFilter,
   allLength,
   pendingLength,
   completedLength,
-}: any) => {
+  removedLength
+}: IPageFilter) => {
   return (
     <div className="filter-wrapper">
       <span
@@ -27,6 +37,12 @@ const PageFilter = ({
         onClick={() => setSelectedFilter(FILTER_TYPE.completed)}
       >
         Completed ({completedLength})
+      </span>
+      <span
+        className={selectedFilter === FILTER_TYPE.removed ? "active" : ""}
+        onClick={() => setSelectedFilter(FILTER_TYPE.removed)}
+      >
+        Removed ({removedLength})
       </span>
     </div>
   );

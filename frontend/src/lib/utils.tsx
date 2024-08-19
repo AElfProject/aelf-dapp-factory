@@ -16,9 +16,9 @@ export const CustomToast = ({ title, message }: any) => (
     <p>{message}</p>
   </div>
 );
-export const calculateTimeRemaining = (createdAt: string) => {
+export const calculateTimeRemaining = (updatedAt: string) => {
   const nowTime = Math.floor(new Date().getTime() / 1000);
-  const difference = nowTime - Number(createdAt);
+  const difference = nowTime - Number(updatedAt);
 
   const hours = Math.floor(difference / 3600);
   const minutes = Math.floor((difference % 3600) / 60);
@@ -32,3 +32,10 @@ export const calculateTimeRemaining = (createdAt: string) => {
     return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
   }
 };
+
+
+export const dateFormat = (date: string) => {
+  const unixTimestamp = Number(date);
+  const formattedDate = new Date(unixTimestamp * 1000).toString()
+  return formattedDate
+}

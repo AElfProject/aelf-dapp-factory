@@ -35,7 +35,7 @@ interface ITodoObject {
   updatedAt: string;
 }
 
-interface Option{
+interface Option {
   value: string;
   label: string;
 };
@@ -72,6 +72,16 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
+
+  // Step D - Configure Todo Form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
+
   const pendingTask = useMemo(() => {
     if (todoData.length === 0) {
       return todoData;
@@ -90,12 +100,26 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
     );
   }, [todoData, selectedFilter, updateId]);
 
+  const removedTask = useMemo(() => {
+    if (todoData.length === 0) {
+      return todoData;
+    }
+    return todoData.filter(
+      (data: ITodoObject) => data.status.toLowerCase() === TASK_STATUS.removed
+    );
+  }, [todoData, selectedFilter, updateId]);
+
   const filteredTask = useMemo(() => {
-    return selectedFilter === TASK_STATUS.pending
-      ? pendingTask
-      : selectedFilter === TASK_STATUS.completed
-      ? completedTask
-      : todoData;
+    switch (selectedFilter) {
+      case TASK_STATUS.pending:
+        return pendingTask
+      case TASK_STATUS.completed:
+        return completedTask
+      case TASK_STATUS.removed:
+        return removedTask
+      default:
+        return todoData
+    }
   }, [selectedFilter, completedTask, pendingTask]);
 
   const handleCloseModal = () => {
@@ -105,7 +129,7 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
     setSelectedCategory(null);
   };
 
-  // get Todo Data from User's wallet using contract
+  // step 8 - get Todo Data from User's wallet using contract
   const getTodoData = async () => {
     try {
       const result = await smartContract?.callViewMethod("ListTasks", {
@@ -120,34 +144,42 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
     }
   };
 
+  // step 1 - Check If Contract is Initialized or not 
+  const checkIsContractInitialized = async () => {
+    const result = await smartContract?.callViewMethod("GetInitialStatus", ""); // Call the GetInitialStatus method which is present on Smart Contract
+    setIsContractInitialized(result?.data?.value); // Expect value True if it's Initialized otherwise NULL if it's not
+  };
+
+  // step 2 - Intitialize The Contract Very First Time
   const initializeContract = async () => {
     let initializeLoadingId;
     try {
+      // Start Loading
       initializeLoadingId = toast.loading("Initializing a Contract..");
+
       await smartContract?.callSendMethod(
-        "Initialize",
-        currentWalletAddress as string,
-        {}
+        "Initialize", // Function Name
+        currentWalletAddress as string, // User Wallet Address 
+        {} // No Arguments
       );
+
+      // Update Loading Message with Success
       toast.update(initializeLoadingId, {
         render: "Contract Successfully Initialized",
         type: "success",
         isLoading: false,
       });
     } catch (error: any) {
+      // Update Loading Message with Error
       toast.update(initializeLoadingId as Id, {
         render: error.message,
         type: "error",
         isLoading: false,
       });
     } finally {
+      // Remove Loading Message
       removeNotification(initializeLoadingId as Id);
     }
-  };
-
-  const checkIsContractInitialized = async () => {
-    const result = await smartContract?.callViewMethod("GetInitialStatus", "");
-    setIsContractInitialized(result?.data?.value);
   };
 
   // Check whether contract initialized or not
@@ -162,59 +194,66 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
     }
   }, [currentWalletAddress]);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
-
+  // step 3 - Create a New Task using Smart Contract
   const createNewTask = async (values: {
     name: string;
     description: string;
   }) => {
     let createLoadingId;
     try {
+      // Start Loading
       createLoadingId = toast.loading("Creating a New Task..");
       setFormLoading(true);
+
+      // Prepare Arguments for Create a New Task
       const sendData = {
         name: values.name,
         description: values.description,
         category: selectedCategory?.value,
         status: TASK_STATUS.pending,
       };
-      console.log("create task with this data", sendData);
+
+      // Call CreateTask Function of Smart Contract
       await smartContract?.callSendMethod(
         "CreateTask",
         currentWalletAddress as string,
         sendData
       );
+
+      // Update Loading Message with Success
       toast.update(createLoadingId, {
         render: "New Task Successfully Created",
         type: "success",
         isLoading: false,
       });
-      handleCloseModal();
+
+      // Get New Data from Contract
       getTodoData();
     } catch (error: any) {
-      console.log("error======", error);
+      // Update Loading Message with Error
       toast.update(createLoadingId as Id, {
         render: error.message,
         type: "error",
         isLoading: false,
       });
     } finally {
-      setFormLoading(false);
+      // Close Form Modal
+      handleCloseModal();
+      // Remove Loading Message
       removeNotification(createLoadingId as Id);
+      setFormLoading(false);
     }
   };
 
+  // step 4 - Update the Task
   const updateTask = async (values: { name: string; description: string }) => {
     let updateLoadingId;
     try {
+      // Start Loading
       updateLoadingId = toast.loading("Updating a Task..");
       setFormLoading(true);
+
+      // Prepare Arguments for Update the Task
       const sendData = {
         taskId: updateId,
         name: values.name,
@@ -222,81 +261,65 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
         category: selectedCategory?.value,
         status: TASK_STATUS.pending,
       };
-      console.log("create task with this data", sendData);
+
+      // Call UpdateTask Function of Smart Contract
       await smartContract?.callSendMethod(
         "UpdateTask",
         currentWalletAddress as string,
         sendData
       );
+
+      // Update Loading Message with Success
       toast.update(updateLoadingId, {
         render: "Task Successfully Updated",
         type: "success",
         isLoading: false,
       });
+
+      // Get New Data from Contract
       getTodoData();
     } catch (error: any) {
-      console.log("error======", error);
+      // Update Loading Message with Error
       toast.update(updateLoadingId as Id, {
         render: error.message,
         type: "error",
         isLoading: false,
       });
     } finally {
-      setFormLoading(false);
+      // Close Form Modal
       handleCloseModal();
+      // Remove Loading Message
       removeNotification(updateLoadingId as Id);
+      setFormLoading(false);
     }
   };
 
-  const deleteTask = async (deleteId: string) => {
-    let deleteLoadingId;
-    try {
-      deleteLoadingId = toast.loading("Removing a Task..");
-      setDeletingId(deleteId);
-      await smartContract?.callSendMethod(
-        "DeleteTask",
-        currentWalletAddress as string,
-        { value: deleteId }
-      );
-      toast.update(deleteLoadingId, {
-        render: "Task Successfully Removed",
-        type: "success",
-        isLoading: false,
-      });
-      setIsModalOpen(false);
-      await getTodoData();
-    } catch (error: any) {
-      console.log("error======", error);
-      toast.update(deleteLoadingId as Id, {
-        render: error.message,
-        type: "error",
-        isLoading: false,
-      });
-    } finally {
-      setDeletingId(null);
-      removeNotification(deleteLoadingId as Id);
-    }
-  };
-
+  // step 5- Update Status from Pending to Completed of the Task
   const completeTask = async (data: ITodoObject) => {
     let completeLoadingId;
     try {
+      // Start Loading
       completeLoadingId = toast.loading("Moving to Completed Task..");
-      setUpdateId(data.taskId);
+      setUpdateId(data.taskId); // set Update Id for Loading on Button
+
+      // Call UpdateTask Function of Smart Contract
       await smartContract?.callSendMethod(
         "UpdateTask",
         currentWalletAddress as string,
         { ...data, status: TASK_STATUS.completed }
       );
+
+      // Update Loading Message with Success
       toast.update(completeLoadingId, {
         render: "Task Moved to Completed",
         type: "success",
         isLoading: false,
       });
-      setIsModalOpen(false);
+
+      // Get New Data from Contract
       await getTodoData();
     } catch (error: any) {
-      console.log("error======", error);
+      // Update Loading Message with Error
       toast.update(completeLoadingId as Id, {
         render: error.message,
         type: "error",
@@ -304,23 +327,70 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
       });
     } finally {
       setUpdateId(null);
+      // Remove Loading Message
       removeNotification(completeLoadingId as Id);
     }
   };
 
-  const onSubmit = async (values: { name: string; description: string }) => {
-    if (isContractInitialized !== true) {
-      await initializeContract();
+  // step 6 - Delete the Task
+  const deleteTask = async (data: ITodoObject) => {
+    let deleteLoadingId;
+    try {
+      // Start Loading
+      deleteLoadingId = toast.loading("Removing a Task..");
+      setDeletingId(data.taskId); // set Deleting Id for Loading on Button
+
+      // Call UpdateTask Function of Smart Contract and update the status as "Removed"
+      await smartContract?.callSendMethod(
+        "UpdateTask",
+        currentWalletAddress as string,
+        { ...data, status: TASK_STATUS.removed }
+      );
+
+      // Update Loading Message with Success
+      toast.update(deleteLoadingId, {
+        render: "Task Successfully Removed",
+        type: "success",
+        isLoading: false,
+      });
+
+      // Get New Data from Contract
+      await getTodoData();
+    } catch (error: any) {
+      // Update Loading Message with Error
+      toast.update(deleteLoadingId as Id, {
+        render: error.message,
+        type: "error",
+        isLoading: false,
+      });
+    } finally {
+      setDeletingId(null);
+      // Remove Loading Message
+      removeNotification(deleteLoadingId as Id);
     }
+  };
+
+  // step 7 - Handle Submit Form
+  const onSubmit = async (values: { name: string; description: string }) => {
+
+    // Check Whether Contract Initialized or not
+    if (isContractInitialized !== true) {
+      await initializeContract(); // initialize the contract if it's not initialized before
+    }
+
+    // Check Whether Form is for Create or Update the Task
     if (!!updateId) {
-      await updateTask(values);
+      await updateTask(values); // Call updateTask for Update the task
     } else {
-      await createNewTask(values);
+      await createNewTask(values); // Call createNewTask for Create a new task
     }
   };
 
   const onEditHandle = (data: ITodoObject) => {
+    // set the UpdateId state
     setUpdateId(data.taskId);
+
+    // set the default form value for edit task
     form.setValue("name", data.name);
     form.setValue("description", data.description);
     const categoryObj = {
@@ -329,6 +399,8 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
     };
     form.setValue("selectedCategory", categoryObj);
     setSelectedCategory(categoryObj);
+
+    // open the form modal
     setIsModalOpen(true);
   };
 
@@ -354,6 +426,7 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
           allLength={todoData.length}
           pendingLength={pendingTask.length}
           completedLength={completedTask.length}
+          removedLength={removedTask.length}
         />
         <Modal
           isVisible={isModalOpen}
@@ -467,7 +540,7 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
             )}
           </div>
         ) : (
-          <div className="bordered-container">
+          <div className="bordered-container no-wallet">
             <strong>
               Please connect your Portkey Wallet and Create a new Todo List.
             </strong>

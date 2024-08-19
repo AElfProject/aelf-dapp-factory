@@ -1,5 +1,5 @@
-import { DateIcons } from "../ui/icons";
-import { calculateTimeRemaining } from "@/lib/utils";
+import { ClockIcon, DateIcons } from "../ui/icons";
+import { calculateTimeRemaining, dateFormat } from "@/lib/utils";
 import { TASK_STATUS } from "@/lib/constant";
 import { Button } from "../ui/button";
 import "./todo-card.scss";
@@ -19,7 +19,7 @@ interface IProps {
   index: number;
   onEditTaskHandle: (data: ITodoObject) => void;
   onCompleteTaskHandle: (data: ITodoObject) => void;
-  onDeleteTaskHandle: (id: string) => void;
+  onDeleteTaskHandle: (deleteTask: ITodoObject) => void;
   updateId: string | null;
   deletingId: string | null;
 }
@@ -34,15 +34,19 @@ const TodoCard = ({
   deletingId,
 }: IProps) => {
   const isTaskCompleted = data.status === TASK_STATUS.completed;
-
+  const isTaskRemoved = data.status === TASK_STATUS.removed;
   return (
     <div className={"todo-card"} key={index}>
       <div className="info">
         <p className="title">{data.name}</p>
         <p className="desc">{data.description}</p>
-        <div className="date">
-          <DateIcons />
+        <div className="date" data-tooltip="Updated Time">
+          <ClockIcon />
           <p>{calculateTimeRemaining(data.updatedAt)}</p>
+        </div>
+        <div className="date" data-tooltip="Created Date and Time">
+          <DateIcons />
+          <p>{dateFormat(data.createdAt)}</p>
         </div>
       </div>
       <div className="right-container">
@@ -50,20 +54,20 @@ const TodoCard = ({
           <span>{data.category}</span>
         </div>
         <div className="action-container">
-          {!isTaskCompleted && (
+          {!isTaskCompleted && !isTaskRemoved && (
             <Button onClick={() => onEditTaskHandle(data)}>Edit</Button>
           )}
-          <Button
+          {!isTaskRemoved && <Button
             className={`complete ${isTaskCompleted ? "active" : ""}`}
             disabled={updateId === data.taskId}
             onClick={() => !isTaskCompleted && onCompleteTaskHandle(data)}
           >
             {isTaskCompleted ? "Completed" : "Complete"}
-          </Button>
+          </Button>}
           <Button
-            className="error-btn"
+            className={`error-btn ${isTaskRemoved ? "active" : ""}`}
             disabled={deletingId === data.taskId}
-            onClick={() => onDeleteTaskHandle(data.taskId)}
+            onClick={() => !isTaskRemoved && onDeleteTaskHandle(data)}
           >
             Remove
           </Button>

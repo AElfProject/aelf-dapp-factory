@@ -48,8 +48,10 @@
       min-height: 250px;
       width: 100%;
       border: 1px solid #1371dd2d;
-      margin-top: 30px;
       border-radius: 15px;
+      &.no-wallet{
+        margin-top: 20px;
+      }
       strong {
         font-size: 18px;
         color: #0a396e86;
