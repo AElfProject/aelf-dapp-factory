@@ -129,7 +129,7 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
     setSelectedCategory(null);
   };
 
-  // step 8 - get Todo Data from User's wallet using contract
+  // step 8 - Get Todo Data from User's wallet using contract
   const getTodoData = async () => {
     try {
       const result = await smartContract?.callViewMethod("ListTasks", {
@@ -428,6 +428,41 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
           completedLength={completedTask.length}
           removedLength={removedTask.length}
         />
+        {currentWalletAddress ? (
+          <div className="todo-collection">
+            {filteredTask.length > 0 ? (
+              filteredTask.slice(0, 5).map((data: ITodoObject, index) => {
+                return (
+                  <TodoCard
+                    data={data}
+                    index={index}
+                    onEditTaskHandle={onEditHandle}
+                    onCompleteTaskHandle={completeTask}
+                    onDeleteTaskHandle={deleteTask}
+                    updateId={updateId}
+                    deletingId={deletingId}
+                  />
+                );
+              })
+            ) : loading ? (
+              <div className="bordered-container">
+                <strong>Loading...</strong>
+              </div>
+            ) : (
+              <div className="bordered-container">
+                <strong>
+                  It's Look like you haven't created any Todo Item yet
+                </strong>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bordered-container no-wallet">
+            <strong>
+              Please connect your Portkey Wallet and Create a new Todo List.
+            </strong>
+          </div>
+        )}
         <Modal
           isVisible={isModalOpen}
           title={(updateId ? "Update" : "Create New") + " Task"}
@@ -510,42 +545,6 @@ const HomePage = ({ provider, currentWalletAddress }: PageProps) => {
             </form>
           </Form>
         </Modal>
-
-        {currentWalletAddress ? (
-          <div className="todo-collection">
-            {filteredTask.length > 0 ? (
-              filteredTask.slice(0, 5).map((data: ITodoObject, index) => {
-                return (
-                  <TodoCard
-                    data={data}
-                    index={index}
-                    onEditTaskHandle={onEditHandle}
-                    onCompleteTaskHandle={completeTask}
-                    onDeleteTaskHandle={deleteTask}
-                    updateId={updateId}
-                    deletingId={deletingId}
-                  />
-                );
-              })
-            ) : loading ? (
-              <div className="bordered-container">
-                <strong>Loading...</strong>
-              </div>
-            ) : (
-              <div className="bordered-container">
-                <strong>
-                  It's Look like you haven't created any Todo Item yet
-                </strong>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="bordered-container no-wallet">
-            <strong>
-              Please connect your Portkey Wallet and Create a new Todo List.
-            </strong>
-          </div>
-        )}
       </div>
     </div>
   );

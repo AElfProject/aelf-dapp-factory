@@ -71,7 +71,7 @@ const TodoCard = ({
             disabled={deletingId === data.taskId}
             onClick={() => !isTaskRemoved && onDeleteTaskHandle(data)}
           >
-            {isTaskRemoved ? "Removed" : "Removed"}
+            {isTaskRemoved ? "Removed" : "Remove"}
           </Button>
         </div>
       </div>
